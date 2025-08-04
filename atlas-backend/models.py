@@ -1,54 +1,68 @@
-from typing import List, Literal, Optional
-from pydantic import BaseModel, Field
+from enum import Enum
+from typing import List, Optional
+
+from pydantic import BaseModel, Field as PydanticField
+from sqlmodel import SQLModel, Field, Column, JSON
 
 
-class Location(BaseModel):
-    id: str
+class LocationType(str, Enum):
+    city = "city"
+    residence = "residence"
+    prison = "prison"
+    port = "port"
+    waypoint = "waypoint"
+    site = "site"
+
+
+class Location(SQLModel, table=True):
+    id: str = Field(primary_key=True)
     name: str
-    type: Literal["city", "residence", "prison", "port", "waypoint", "site"]
-    coords: tuple[float, float]
+    type: LocationType
+    coords: List[float] = Field(sa_column=Column(JSON))
     description: Optional[str] = None
 
 
-class Person(BaseModel):
-    id: str
+class Person(SQLModel, table=True):
+    id: str = Field(primary_key=True)
     name: str
     role: Optional[str] = None
 
 
-class Writing(BaseModel):
-    id: str
+class Writing(SQLModel, table=True):
+    id: str = Field(primary_key=True)
     name: str
-    locId: Optional[str] = None
+    locId: Optional[str] = Field(default=None, foreign_key="location.id")
     year: Optional[int] = None
 
 
-class Event(BaseModel):
-    id: str
+class EventType(str, Enum):
+    birth = "birth"
+    death = "death"
+    journey = "journey"
+    residence = "residence"
+    exile = "exile"
+    imprisonment = "imprisonment"
+    declaration = "declaration"
+    battle = "battle"
+    publication = "publication"
+    other = "other"
+
+
+class Event(SQLModel, table=True):
+    id: str = Field(primary_key=True)
     name: str
-    type: Literal[
-        "birth",
-        "death",
-        "journey",
-        "residence",
-        "exile",
-        "imprisonment",
-        "declaration",
-        "battle",
-        "publication",
-        "other",
-    ]
+    type: EventType
     dateStart: str
     dateEnd: Optional[str] = None
-    locId: Optional[str] = None
-    journeyPath: Optional[List[str]] = None
-    peopleIds: Optional[List[str]] = None
-    writingIds: Optional[List[str]] = None
+    locId: Optional[str] = Field(default=None, foreign_key="location.id")
+    journeyPath: Optional[List[str]] = Field(default=None, sa_column=Column(JSON))
+    peopleIds: Optional[List[str]] = Field(default=None, sa_column=Column(JSON))
+    writingIds: Optional[List[str]] = Field(default=None, sa_column=Column(JSON))
     source: Optional[str] = None
 
 
 class AtlasDB(BaseModel):
-    locations: List[Location] = Field(default_factory=list)
-    people: List[Person] = Field(default_factory=list)
-    writings: List[Writing] = Field(default_factory=list)
-    events: List[Event] = Field(default_factory=list)
+    locations: List[Location] = PydanticField(default_factory=list)
+    people: List[Person] = PydanticField(default_factory=list)
+    writings: List[Writing] = PydanticField(default_factory=list)
+    events: List[Event] = PydanticField(default_factory=list)
